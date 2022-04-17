@@ -1,0 +1,1 @@
+{"buildTargets":["all","kind-apply","kind-delete","kind-down","kind-envoy-logs","kind-load","kind-restart","kind-status","kind-status-strava","kind-strava-logs","kind-up","kind-update","kind-update-apply","run","strava","tidy"],"launchTargets":[],"customConfigurationProvider":{"workspaceBrowse":{"browsePath":[],"compilerArgs":[]},"fileIndex":[]}}

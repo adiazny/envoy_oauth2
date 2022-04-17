@@ -1,15 +1,23 @@
 node:
   cluster: service_oauth2
   id: test-id-1
-
 admin:
-  access_log_path: /dev/null    # seems to be necessary to have an admin endpoint
+  access_log_path: /tmp/admin_access.log   # seems to be necessary to have an admin endpoint
   address:
     socket_address:
       protocol: TCP
       address: 0.0.0.0
       port_value: 9902
 static_resources:
+  secrets:
+  - name: token
+    generic_secret:
+      secret:
+        inline_string: "CLIENT_SECRET_HERE"
+  - name: hmac
+    generic_secret:
+      secret:
+        inline_string: "HMAC_SECRET_HERE"
   listeners:
   - name: listener_0
     address:
@@ -40,7 +48,7 @@ static_resources:
               "@type": type.googleapis.com/envoy.extensions.filters.http.oauth2.v3.OAuth2
               config:
                 token_endpoint:
-                  cluster: google_oauth2
+                  cluster: service_backend
                   uri: https://www.strava.com/oauth/token
                   timeout: 3s
                 authorization_endpoint: https://www.strava.com/oauth/authorize
@@ -56,39 +64,15 @@ static_resources:
                   client_id: "CLIENT_ID"
                   token_secret:
                     name: token
-                    sds_config:
-                      path: "/config/token-secret.yaml"
                   hmac_secret:
                     name: hmac
-                    sds_config:
-                      path: "/config/hmac-secret.yaml"
                 auth_scopes:
                 - activity:write
           - name: envoy.filters.http.router
   clusters:
-  - name: google_oauth2
-    connect_timeout: 0.25s
-    type: strict_dns
-    lb_policy: round_robin
-    dns_lookup_family: V4_ONLY    
-    load_assignment:
-      cluster_name: google_oauth2
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: oauth2.googleapis.com
-                port_value: 443
-    transport_socket:
-      name: envoy.transport_sockets.tls
-      typed_config:
-        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-        sni: oauth2.googleapis.com
   - name: service_backend
-    type: static
+    type: STATIC
     connect_timeout: 5s
-    http2_protocol_options: {}
     load_assignment:
       cluster_name: service_backend
       endpoints:
@@ -98,14 +82,3 @@ static_resources:
               socket_address:
                 address: 127.0.0.1
                 port_value: 8082
-    transport_socket:
-      name: envoy.transport_sockets.tls
-      typed_config:
-        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-        sni: backend.esodemoapp2.com
-        common_tls_context:
-          validation_context:
-            match_subject_alt_names:
-              exact: "backend.esodemoapp2.com"
-            trusted_ca:
-              filename: "config/certs/tls-ca-chain.pem"
