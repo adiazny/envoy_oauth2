@@ -57,10 +57,10 @@ kind-status-strava:
 
 # Logging support currently working. Need to find how to get $(kubctl ...) output to work in makefile
 kind-strava-logs:
-	kubectl logs $(kubectl get pods --selector=app=strava -o jsonpath='{.items..metadata.name}') -c strava -f
+	kubectl logs $(shell kubectl get pods --selector=app=strava -o jsonpath='{.items..metadata.name}') -c strava -f
 
 kind-envoy-logs:
-	kubectl logs $(kubectl get pods --selector=app=strava -o jsonpath='{.items..metadata.name}') -c envoy -f
+	kubectl logs $(shell kubectl get pods --selector=app=strava -o jsonpath='{.items..metadata.name}') -c envoy -f
 
 kind-restart:
 	kubectl rollout restart deployment strava-pod
