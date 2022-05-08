@@ -12,12 +12,7 @@ import (
 	"flag"
 
 	"github.com/gorilla/mux"
-	"golang.org/x/net/http2"
 )
-
-// var (
-// 	validateUser = flag.Bool("validateUser", false, "Lookup User with athlete endpoint")
-// )
 
 const (
 	athleteEndpoint = "https://www.strava.com/api/v3/athlete"
@@ -35,17 +30,15 @@ type parsedData struct {
 
 func oauthMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Inside Oauth middleware")
 		dump, err := httputil.DumpRequest(r, true)
 		if err != nil {
 			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 			return
 		}
 
-		fmt.Printf("Headers: %s\n", dump)
+		fmt.Printf("Print Headers: %s\n", dump)
 
 		hc, err := r.Cookie("OauthHMAC")
-		fmt.Printf("\nOauthHMAC: %s\n", hc)
 		if err != nil {
 			fmt.Printf("Inside HMAC: %s\n", hc)
 			http.Error(w, fmt.Sprint(err), http.StatusUnauthorized)
@@ -53,7 +46,6 @@ func oauthMiddleware(h http.Handler) http.Handler {
 		}
 
 		expires, err := r.Cookie("OauthExpires")
-		fmt.Printf("\nOauthExpires: %s\n", expires)
 		if err != nil {
 			fmt.Printf("Inside OauthExpires: %s\n", expires)
 			http.Error(w, fmt.Sprint(err), http.StatusUnauthorized)
@@ -61,25 +53,11 @@ func oauthMiddleware(h http.Handler) http.Handler {
 		}
 
 		host := r.Host
-		fmt.Printf("\nHOST: %s\n", host)
 		if host == "" {
 			fmt.Printf("Inside Host: %s\n", host)
 			http.Error(w, fmt.Sprint(err), http.StatusUnauthorized)
 			return
 		}
-
-		//fmt.Println("Req body", r.Body)
-
-		//fmt.Println("Attempt to print Bearer...")
-
-		// bearerTokenCookie, err := r.Cookie("BearerToken")
-		// if err != nil {
-		// 	http.Error(w, "BearerToken not present", http.StatusUnauthorized)
-		// 	return
-		// }
-		// accessToken := bearerTokenCookie.Value
-
-		// fmt.Println("BearerToken:", accessToken)
 
 		bearerTokenCookie, err := r.Cookie("BearerToken")
 		if err != nil {
@@ -102,12 +80,9 @@ func oauthMiddleware(h http.Handler) http.Handler {
 		//optionally lookup who the user really is
 		athlete, err := getAthlete(accessToken)
 		if err != nil {
-			//fmt.Printf("Inside getAthlete: %v\n", athlete)
 			http.Error(w, "getAthlete error", http.StatusUnauthorized)
 			return
 		}
-
-		fmt.Printf("\nUsername is %v", athlete)
 
 		event := &parsedData{
 			AccessToken: accessToken,
@@ -135,26 +110,20 @@ func getAthlete(accessToken string) (AthleteInfo, error) {
 
 	bearer := fmt.Sprintf("Bearer %s", accessToken)
 	req.Header.Add("Authorization", bearer)
-	fmt.Println("Alan's Bearer Header", req.Header.Get("Authorization"))
-	fmt.Println("HTTP REQUEST", req.URL.String())
-	fmt.Println("HTTP REQUEST", req)
 
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("Error making HTTP GET request to Strava /athlete: %v", err)
 		return AthleteInfo{}, err
 	}
-	defer resp.Body.Close()
 
-	fmt.Println("Alan's getAthlete Resp", resp.Body)
+	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("Error reading response body %v", err.Error())
 		return AthleteInfo{}, err
 	}
-
-	fmt.Println("Resp in bytes", string(b))
 
 	var athlete AthleteInfo
 
@@ -182,7 +151,7 @@ func main() {
 		Addr:    ":8082",
 		Handler: oauthMiddleware(router),
 	}
-	http2.ConfigureServer(server, &http2.Server{})
+	//http2.ConfigureServer(server, &http2.Server{})
 	fmt.Println("Starting Server...")
 	err := server.ListenAndServe()
 	// err := server.ListenAndServeTLS("certs/backend.crt", "certs/backend.key")
